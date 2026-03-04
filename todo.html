@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My To-Do</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #fff;
+      border-bottom: 2px solid #7a9e5e;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; color: #7a9e5e; }
+    header span { font-size: 0.85rem; color: #9ca3af; }
+
+    /* ── Layout ── */
+    .container { max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+
+    /* ── Add Button ── */
+    #btn-add {
+      width: 100%;
+      padding: 14px;
+      background: #7a9e5e;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 20px;
+    }
+    #btn-add:hover { background: #6a8c50; }
+
+    /* ── Form Card ── */
+    .form-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      border: 1px solid #e5e7eb;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .form-card.open { display: block; }
+    .form-card h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; color: #1a1a1a; }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #7a9e5e;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .field input[type="text"],
+    .field input[type="date"],
+    .field textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: #1a1a1a;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field input:focus,
+    .field textarea:focus { border-color: #7a9e5e; box-shadow: 0 0 0 3px rgba(122,158,94,0.12); }
+    .field textarea { resize: vertical; min-height: 80px; }
+
+    /* Days */
+    .days-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .day-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1.5px solid #e5e7eb;
+      background: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .day-btn.selected { background: #7a9e5e; border-color: #7a9e5e; color: #fff; }
+    .day-btn:hover:not(.selected) { border-color: #7a9e5e; color: #7a9e5e; }
+
+    /* Type Buttons */
+    .type-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .type-btn {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1.5px solid #e5e7eb;
+      background: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #6b7280;
+    }
+    .type-btn.selected { color: #fff; border-color: transparent; }
+    .type-btn[data-type="진행중"].selected { background: #7a9e5e; }
+    .type-btn[data-type="목표"].selected    { background: #5b8a72; }
+    .type-btn[data-type="루틴"].selected    { background: #9ab870; }
+    .type-btn[data-type="기타"].selected    { background: #b0c890; }
+    .type-btn:hover:not(.selected) { border-color: #7a9e5e; color: #7a9e5e; }
+
+    /* Form Buttons */
+    .form-actions { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-save {
+      flex: 1;
+      padding: 12px;
+      background: #7a9e5e;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-save:hover { background: #6a8c50; }
+    .btn-cancel {
+      padding: 12px 20px;
+      background: #f3f4f6;
+      color: #6b7280;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-cancel:hover { background: #e5e7eb; }
+
+    /* ── Filter Bar ── */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid #e5e7eb;
+      background: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover:not(.active) { border-color: #7a9e5e; color: #7a9e5e; }
+    .filter-btn.active { background: #7a9e5e; border-color: #7a9e5e; color: #fff; }
+
+    /* ── Task List ── */
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-bottom: 10px;
+      padding-left: 4px;
+    }
+
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .task-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      border: 1px solid #e5e7eb;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: opacity 0.2s;
+    }
+    .task-card.done { opacity: 0.45; }
+    .task-card.done .task-title { text-decoration: line-through; color: #9ca3af; }
+
+    /* Checkbox */
+    .task-check {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 2px solid #d1d5db;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 2px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      background: #fff;
+    }
+    .task-check:hover { border-color: #7a9e5e; }
+    .task-check.done { background: #7a9e5e; border-color: #7a9e5e; }
+    .task-check.done::after { content: '✓'; color: #fff; font-size: 13px; font-weight: 700; }
+
+    .task-body { flex: 1; min-width: 0; }
+    .task-title { font-size: 0.98rem; font-weight: 600; margin-bottom: 6px; color: #1a1a1a; }
+
+    .task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+
+    /* Type Badge */
+    .badge {
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .badge-진행중 { background: #7a9e5e; }
+    .badge-목표   { background: #5b8a72; }
+    .badge-루틴   { background: #9ab870; }
+    .badge-기타   { background: #b0c890; color: #3a5a2e; }
+
+    /* Day chips */
+    .day-chip {
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: #f0f5ec;
+      color: #7a9e5e;
+      border: 1px solid #d4e4c4;
+    }
+
+    /* Due date */
+    .due-date { font-size: 0.78rem; color: #9ca3af; font-weight: 500; }
+    .due-date.overdue { color: #e05a3a; font-weight: 700; }
+
+    /* Note */
+    .task-note {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: #f7faf4;
+      border-left: 3px solid #b8d4a0;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.82rem;
+      color: #6b7280;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    /* Actions */
+    .task-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-icon {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .btn-edit { background: #f3f4f6; color: #4b5563; }
+    .btn-edit:hover { background: #e5e7eb; }
+    .btn-delete { background: #fef2f2; color: #ef4444; }
+    .btn-delete:hover { background: #fee2e2; }
+
+    /* Empty State */
+    .empty { text-align: center; padding: 48px 0; color: #9ca3af; }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty p { font-size: 0.9rem; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      border: 1px solid #e5e7eb;
+    }
+    .modal-box h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; color: #1a1a1a; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📋 My To-Do</h1>
+  <span id="today-label"></span>
+</header>
+
+<div class="container">
+
+  <button id="btn-add">+ 새 할 일 추가</button>
+
+  <!-- 추가 폼 -->
+  <div class="form-card" id="form-add">
+    <h2>새 할 일</h2>
+    <div id="add-fields"></div>
+    <div class="form-actions">
+      <button class="btn-cancel" id="btn-cancel-add">취소</button>
+      <button class="btn-save" id="btn-save-add">저장</button>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-filter="전체">전체</button>
+    <button class="filter-btn" data-filter="진행중">진행중</button>
+    <button class="filter-btn" data-filter="목표">목표</button>
+    <button class="filter-btn" data-filter="루틴">루틴</button>
+    <button class="filter-btn" data-filter="기타">기타</button>
+    <button class="filter-btn" data-filter="완료">완료</button>
+  </div>
+
+  <div class="section-title">할 일 목록</div>
+  <div class="task-list" id="task-list"></div>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-box">
+    <h2>할 일 수정</h2>
+    <div id="edit-fields"></div>
+    <div class="form-actions">
+      <button class="btn-cancel" id="btn-cancel-edit">취소</button>
+      <button class="btn-save" id="btn-save-edit">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── State ── */
+  const DAYS = ['월','화','수','목','금','토','일'];
+  const TYPES = ['진행중','목표','루틴','기타'];
+  let tasks = JSON.parse(localStorage.getItem('todos') || '[]');
+  let currentFilter = '전체';
+  let editingId = null;
+
+  /* ── Today Label ── */
+  const dayNames = ['일','월','화','수','목','금','토'];
+  const now = new Date();
+  document.getElementById('today-label').textContent =
+    `${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}. (${dayNames[now.getDay()]})`;
+
+  /* ── Save ── */
+  function saveTasks() {
+    localStorage.setItem('todos', JSON.stringify(tasks));
+  }
+
+  /* ── Build Form Fields ── */
+  function buildFields(containerId, data = {}) {
+    const container = document.getElementById(containerId);
+    const title   = data.title || '';
+    const days    = data.days  || [];
+    const type    = data.type  || '';
+    const dueDate = data.dueDate || '';
+    const note    = data.note   || '';
+
+    container.innerHTML = `
+      <div class="field">
+        <label>제목</label>
+        <input type="text" id="${containerId}-title" placeholder="할 일을 입력하세요" value="${escHtml(title)}" />
+      </div>
+      <div class="field">
+        <label>요일</label>
+        <div class="days-row" id="${containerId}-days">
+          ${DAYS.map(d => `
+            <button type="button" class="day-btn${days.includes(d) ? ' selected' : ''}" data-day="${d}">${d}</button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>유형</label>
+        <div class="type-row" id="${containerId}-types">
+          ${TYPES.map(t => `
+            <button type="button" class="type-btn${type === t ? ' selected' : ''}" data-type="${t}">${t}</button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>기한</label>
+        <input type="date" id="${containerId}-due" value="${dueDate}" />
+      </div>
+      <div class="field">
+        <label>노트</label>
+        <textarea id="${containerId}-note" placeholder="메모를 입력하세요...">${escHtml(note)}</textarea>
+      </div>
+    `;
+
+    /* Day toggle */
+    container.querySelectorAll('.day-btn').forEach(btn => {
+      btn.addEventListener('click', () => btn.classList.toggle('selected'));
+    });
+
+    /* Type toggle (single select) */
+    container.querySelectorAll('.type-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+  }
+
+  function getFieldValues(containerId) {
+    const container = document.getElementById(containerId);
+    const title   = document.getElementById(`${containerId}-title`).value.trim();
+    const days    = [...container.querySelectorAll('.day-btn.selected')].map(b => b.dataset.day);
+    const typeBtn = container.querySelector('.type-btn.selected');
+    const type    = typeBtn ? typeBtn.dataset.type : '';
+    const dueDate = document.getElementById(`${containerId}-due`).value;
+    const note    = document.getElementById(`${containerId}-note`).value.trim();
+    return { title, days, type, dueDate, note };
+  }
+
+  /* ── Render List ── */
+  function renderList() {
+    const list = document.getElementById('task-list');
+    let filtered = tasks;
+    if (currentFilter === '완료') {
+      filtered = tasks.filter(t => t.done);
+    } else if (currentFilter !== '전체') {
+      filtered = tasks.filter(t => t.type === currentFilter && !t.done);
+    } else {
+      filtered = tasks.filter(t => !t.done).concat(tasks.filter(t => t.done));
+    }
+
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">✅</div>
+          <p>할 일이 없습니다!</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(task => {
+      const overdue = task.dueDate && !task.done && task.dueDate < today() ? ' overdue' : '';
+      const dueTxt  = task.dueDate ? `~${task.dueDate}` : '';
+      const dayChips = task.days.map(d => `<span class="day-chip">${d}</span>`).join('');
+      const noteTxt  = task.note ? `<div class="task-note">${escHtml(task.note)}</div>` : '';
+      const badgeTxt = task.type ? `<span class="badge badge-${task.type}">${task.type}</span>` : '';
+      const dueBadge = dueTxt ? `<span class="due-date${overdue}">📅 ${dueTxt}</span>` : '';
+
+      return `
+        <div class="task-card${task.done ? ' done' : ''}" data-id="${task.id}">
+          <div class="task-check${task.done ? ' done' : ''}" onclick="toggleDone('${task.id}')"></div>
+          <div class="task-body">
+            <div class="task-title">${escHtml(task.title)}</div>
+            <div class="task-meta">
+              ${badgeTxt}
+              ${dayChips}
+              ${dueBadge}
+            </div>
+            ${noteTxt}
+          </div>
+          <div class="task-actions">
+            <button class="btn-icon btn-edit" onclick="openEdit('${task.id}')">✏️</button>
+            <button class="btn-icon btn-delete" onclick="deleteTask('${task.id}')">🗑️</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function today() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Actions ── */
+  function toggleDone(id) {
+    const task = tasks.find(t => t.id === id);
+    if (task) { task.done = !task.done; saveTasks(); renderList(); }
+  }
+
+  function deleteTask(id) {
+    if (!confirm('삭제할까요?')) return;
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks(); renderList();
+  }
+
+  /* ── Add Form ── */
+  document.getElementById('btn-add').addEventListener('click', () => {
+    buildFields('add-fields');
+    document.getElementById('form-add').classList.toggle('open');
+  });
+
+  document.getElementById('btn-cancel-add').addEventListener('click', () => {
+    document.getElementById('form-add').classList.remove('open');
+  });
+
+  document.getElementById('btn-save-add').addEventListener('click', () => {
+    const vals = getFieldValues('add-fields');
+    if (!vals.title) { alert('제목을 입력해주세요.'); return; }
+    tasks.unshift({ id: Date.now().toString(), done: false, ...vals });
+    saveTasks(); renderList();
+    document.getElementById('form-add').classList.remove('open');
+  });
+
+  /* ── Edit Modal ── */
+  function openEdit(id) {
+    editingId = id;
+    const task = tasks.find(t => t.id === id);
+    buildFields('edit-fields', task);
+    document.getElementById('modal-edit').classList.add('open');
+  }
+
+  document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+    document.getElementById('modal-edit').classList.remove('open');
+  });
+
+  document.getElementById('modal-edit').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal-edit')) {
+      document.getElementById('modal-edit').classList.remove('open');
+    }
+  });
+
+  document.getElementById('btn-save-edit').addEventListener('click', () => {
+    const vals = getFieldValues('edit-fields');
+    if (!vals.title) { alert('제목을 입력해주세요.'); return; }
+    const task = tasks.find(t => t.id === editingId);
+    if (task) { Object.assign(task, vals); saveTasks(); renderList(); }
+    document.getElementById('modal-edit').classList.remove('open');
+  });
+
+  /* ── Filter ── */
+  document.getElementById('filter-bar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderList();
+  });
+
+  /* ── Init ── */
+  renderList();
+</script>
+</body>
+</html>
